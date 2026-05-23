@@ -11,6 +11,7 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
   const [isCaptured, setIsCaptured] = useState(false)
   const [previewImage, setPreviewImage] = useState(null)
   const [countdown, setCountdown] = useState(5)
+  const [cameraReady, setCameraReady] = useState(false)
 
   const setVideoRef = (el) => {
     videoRef.current = el
@@ -22,7 +23,7 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
 
   // Countdown timer for auto-capture
   useEffect(() => {
-    if (isCaptured) return
+    if (isCaptured || !cameraReady) return
 
     const timer = setInterval(() => {
       setCountdown(prev => {
@@ -37,7 +38,7 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [isCaptured])
+  }, [isCaptured, cameraReady])
 
   // Reset countdown when moving to new photo
   useEffect(() => {
@@ -75,6 +76,14 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
           videoRef.current.srcObject = stream
           console.log('Video stream attached to element')
         }
+
+        // Wait for video to be ready before starting countdown
+        if (videoRef.current) {
+          videoRef.current.onloadedmetadata = () => {
+            console.log('Camera ready, starting countdown')
+            setCameraReady(true)
+          }
+        }
       } catch (err) {
         console.error('Camera error:', err)
         setError('Unable to access camera. Please check permissions.')
@@ -99,11 +108,17 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
 
     setIsCaptured(false)
     setPreviewImage(null)
+    setCameraReady(false)
+    setCountdown(5)
 
     // Make sure video is reconnected to stream
     if (videoRef.current && streamRef.current) {
       console.log('Reconnecting stream to video element')
       videoRef.current.srcObject = streamRef.current
+      videoRef.current.onloadedmetadata = () => {
+        console.log('Camera ready for photo', photoIndex)
+        setCameraReady(true)
+      }
       videoRef.current.play().catch(err => console.error('Play error:', err))
     } else {
       console.log('Cannot reconnect - videoRef:', !!videoRef.current, 'streamRef:', !!streamRef.current)
@@ -212,18 +227,22 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
                 zIndex: 10,
               }}
             >
-              <Typography
-                variant="h1"
-                sx={{
-                  fontSize: '120px',
-                  fontWeight: 'bold',
-                  color: 'white',
-                  textShadow: '0 0 20px rgba(0,0,0,0.8)',
-                  margin: 0,
-                }}
-              >
-                {countdown}
-              </Typography>
+              {cameraReady ? (
+                <Typography
+                  variant="h1"
+                  sx={{
+                    fontSize: '120px',
+                    fontWeight: 'bold',
+                    color: 'white',
+                    textShadow: '0 0 20px rgba(0,0,0,0.8)',
+                    margin: 0,
+                  }}
+                >
+                  {countdown}
+                </Typography>
+              ) : (
+                <CircularProgress sx={{ color: 'white' }} />
+              )}
             </Box>
           )}
         </Box>
