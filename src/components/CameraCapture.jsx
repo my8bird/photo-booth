@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Box, Button, Card, CircularProgress, Typography } from '@mui/material'
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
 import PhotoAlbumIcon from '@mui/icons-material/PhotoAlbum'
@@ -13,13 +13,13 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
   const [countdown, setCountdown] = useState(5)
   const [cameraReady, setCameraReady] = useState(false)
 
-  const setVideoRef = (el) => {
+  const setVideoRef = useCallback((el) => {
     videoRef.current = el
     if (el && streamRef.current) {
       console.log('Video ref set, attaching stream')
       el.srcObject = streamRef.current
     }
-  }
+  }, [])
 
   // Countdown timer for auto-capture
   useEffect(() => {
@@ -108,17 +108,25 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
 
     setIsCaptured(false)
     setPreviewImage(null)
-    setCameraReady(false)
     setCountdown(5)
 
     // Make sure video is reconnected to stream
     if (videoRef.current && streamRef.current) {
       console.log('Reconnecting stream to video element')
       videoRef.current.srcObject = streamRef.current
-      videoRef.current.onloadedmetadata = () => {
-        console.log('Camera ready for photo', photoIndex)
+
+      // If video already has metadata, immediately set ready
+      if (videoRef.current.readyState >= 1) {
+        console.log('Video already has metadata, setting ready')
         setCameraReady(true)
+      } else {
+        // Otherwise wait for metadata to load
+        videoRef.current.onloadedmetadata = () => {
+          console.log('Camera ready for photo', photoIndex)
+          setCameraReady(true)
+        }
       }
+
       videoRef.current.play().catch(err => console.error('Play error:', err))
     } else {
       console.log('Cannot reconnect - videoRef:', !!videoRef.current, 'streamRef:', !!streamRef.current)
@@ -166,6 +174,25 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
             Please allow camera access and try again.
           </Typography>
         </Card>
+      </Box>
+    )
+  }
+
+  if (!cameraReady && !isCaptured) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', bgcolor: '#000', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
+        <Typography variant="h4" sx={{ color: 'white', fontSize: '2.5rem', textAlign: 'center', px: 2 }}>
+          Start your photo booth by enabling your camera
+        </Typography>
+        <video
+          ref={setVideoRef}
+          autoPlay
+          muted
+          playsInline
+          style={{
+            display: 'none',
+          }}
+        />
       </Box>
     )
   }
