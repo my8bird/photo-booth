@@ -23,7 +23,6 @@ export const composePhotos = async (photos) => {
       img.crossOrigin = 'anonymous'
 
       img.onload = () => {
-        console.log(`Image ${index} loaded:`, img.width, 'x', img.height)
         images[index] = img
         loadedCount++
 
@@ -42,7 +41,6 @@ export const composePhotos = async (photos) => {
           // Remove extra spacing after last image
           compositeHeight -= SPACING
 
-          console.log('Creating canvas with calculated height:', compositeHeight)
           const canvasWidth = PHOTO_WIDTH + HORIZONTAL_PADDING * 2
           const canvas = document.createElement('canvas')
           canvas.width = canvasWidth
@@ -54,11 +52,8 @@ export const composePhotos = async (photos) => {
           ctx.fillRect(0, 0, canvas.width, canvas.height)
 
           try {
-            console.log('All images loaded, drawing composite')
             drawComposite(ctx, images, canvas)
-            console.log('Drawing complete, converting to blob')
             canvas.toBlob(blob => {
-              console.log('Blob created:', blob.size)
               resolve(blob)
             }, 'image/jpeg', 0.9)
           } catch (error) {
@@ -78,7 +73,6 @@ export const composePhotos = async (photos) => {
         reject(new Error(`Failed to load photo ${index + 1}`))
       }
 
-      console.log(`Loading image ${index}:`, url)
       img.src = url
     })
   })
@@ -108,8 +102,6 @@ const drawComposite = (ctx, images, canvas) => {
     currentY += scaledHeight + SPACING
   })
 
-  console.log('Drawing composite, positions:', positions)
-
   images.forEach((img, index) => {
     const pos = positions[index]
 
@@ -122,8 +114,6 @@ const drawComposite = (ctx, images, canvas) => {
     const scale = photoWidth / cropSize
     const scaledWidth = photoWidth
     const scaledHeight = pos.scaledHeight
-
-    console.log(`Drawing image ${index} at y=${pos.y}, scale=${scale}, scaledHeight=${scaledHeight}, cropX=${cropX}, cropY=${cropY}`)
 
     // Save canvas state
     ctx.save()

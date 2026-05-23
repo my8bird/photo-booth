@@ -16,7 +16,6 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
   const setVideoRef = useCallback((el) => {
     videoRef.current = el
     if (el && streamRef.current) {
-      console.log('Video ref set, attaching stream')
       el.srcObject = streamRef.current
     }
   }, [])
@@ -59,7 +58,6 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
   useEffect(() => {
     const startCamera = async () => {
       try {
-        console.log('Requesting camera access...')
         const constraints = {
           video: {
             facingMode: 'user',
@@ -69,18 +67,15 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
           audio: false,
         }
         const stream = await navigator.mediaDevices.getUserMedia(constraints)
-        console.log('Camera stream received:', stream)
         streamRef.current = stream
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream
-          console.log('Video stream attached to element')
         }
 
         // Wait for video to be ready before starting countdown
         if (videoRef.current) {
           videoRef.current.onloadedmetadata = () => {
-            console.log('Camera ready, starting countdown')
             setCameraReady(true)
           }
         }
@@ -101,35 +96,25 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
 
   // Reset capture state when moving to a new photo
   useEffect(() => {
-    console.log('=== Moving to photo:', photoIndex)
-    console.log('VideoRef.current:', !!videoRef.current)
-    console.log('StreamRef.current:', !!streamRef.current)
-    console.log('Stream tracks:', streamRef.current?.getTracks().length)
-
     setIsCaptured(false)
     setPreviewImage(null)
     setCountdown(5)
 
     // Make sure video is reconnected to stream
     if (videoRef.current && streamRef.current) {
-      console.log('Reconnecting stream to video element')
       videoRef.current.srcObject = streamRef.current
 
       // If video already has metadata, immediately set ready
       if (videoRef.current.readyState >= 1) {
-        console.log('Video already has metadata, setting ready')
         setCameraReady(true)
       } else {
         // Otherwise wait for metadata to load
         videoRef.current.onloadedmetadata = () => {
-          console.log('Camera ready for photo', photoIndex)
           setCameraReady(true)
         }
       }
 
       videoRef.current.play().catch(err => console.error('Play error:', err))
-    } else {
-      console.log('Cannot reconnect - videoRef:', !!videoRef.current, 'streamRef:', !!streamRef.current)
     }
   }, [photoIndex])
 
@@ -210,37 +195,31 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
       <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', p: 2, bgcolor: '#000', minHeight: 0, overflow: 'auto' }}>
         <Box sx={{ width: '100%', maxWidth: 'calc(100vh - 200px)', aspectRatio: '1 / 1', display: 'flex', justifyContent: 'center', alignItems: 'center', overflow: 'hidden', borderRadius: '8px', position: 'relative' }}>
           {isCaptured && previewImage ? (
-            <>
-              {console.log('Rendering image preview')}
-              <Box
-                component="img"
-                src={previewImage}
-                sx={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                }}
-              />
-            </>
+            <Box
+              component="img"
+              src={previewImage}
+              sx={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+              }}
+            />
           ) : (
-            <>
-              {console.log('Rendering video - photoIndex:', photoIndex)}
-              <video
-                ref={setVideoRef}
-                autoPlay
-                muted
-                playsInline
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  objectPosition: 'center',
-                  transform: 'scaleX(-1)',
-                  display: 'block',
-                  backgroundColor: '#000',
-                }}
-              />
-            </>
+            <video
+              ref={setVideoRef}
+              autoPlay
+              muted
+              playsInline
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                objectPosition: 'center',
+                transform: 'scaleX(-1)',
+                display: 'block',
+                backgroundColor: '#000',
+              }}
+            />
           )}
 
           {/* Countdown overlay - centered on video */}

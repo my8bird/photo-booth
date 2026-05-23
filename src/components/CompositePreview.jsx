@@ -32,11 +32,8 @@ export const CompositePreview = ({ photos, onReset }) => {
     // Compose the photos
     const compose = async () => {
       try {
-        console.log('Starting composite creation with photos:', photos.length, 'non-null:', photos.filter(p => p).length)
         const blob = await composePhotos(photos)
-        console.log('Composite created, blob size:', blob.size)
         const url = URL.createObjectURL(blob)
-        console.log('Composite URL created:', url)
         setCompositeImage({ blob, url })
         setIsComposing(false)
       } catch (error) {
@@ -113,37 +110,33 @@ export const CompositePreview = ({ photos, onReset }) => {
         {isComposing ? (
           <CircularProgress />
         ) : compositeImage?.url ? (
-          <>
-            {console.log('Displaying composite image:', compositeImage.url)}
+          <Box
+            sx={{
+              border: '4px solid #444',
+              borderRadius: '2px',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+              padding: '4px',
+              bgcolor: '#1e1e1e',
+              height: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
             <Box
+              component="img"
+              src={compositeImage.url}
+              onError={(e) => console.error('Image load error:', e)}
               sx={{
-                border: '4px solid #444',
-                borderRadius: '2px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
-                padding: '4px',
-                bgcolor: '#1e1e1e',
-                height: '100%',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
+                maxWidth: '100%',
+                maxHeight: '100%',
+                width: 'auto',
+                height: 'auto',
+                display: 'block',
+                objectFit: 'contain'
               }}
-            >
-              <Box
-                component="img"
-                src={compositeImage.url}
-                onLoad={() => console.log('Image loaded in display')}
-                onError={(e) => console.error('Image load error:', e)}
-                sx={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  width: 'auto',
-                  height: 'auto',
-                  display: 'block',
-                  objectFit: 'contain'
-                }}
-              />
-            </Box>
-          </>
+            />
+          </Box>
         ) : (
           <Typography color="error">Failed to create composite image</Typography>
         )}
