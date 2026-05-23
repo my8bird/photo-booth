@@ -8,6 +8,7 @@ class GoogleAuthService {
     this.accessToken = null
     this.tokenExpiry = null
     this.clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+    this.preConfiguredToken = import.meta.env.VITE_GOOGLE_PHOTOS_TOKEN
   }
 
   async initialize() {
@@ -71,10 +72,20 @@ class GoogleAuthService {
   }
 
   getAccessToken() {
+    // If pre-configured token exists, use it
+    if (this.preConfiguredToken) {
+      return this.preConfiguredToken
+    }
+    // Otherwise return user-authenticated token
     return this.accessToken
   }
 
   isAuthenticated() {
+    // Pre-configured token means we're always authenticated
+    if (this.preConfiguredToken) {
+      return true
+    }
+    // Check user-authenticated token
     return this.accessToken && (!this.tokenExpiry || new Date() < this.tokenExpiry)
   }
 

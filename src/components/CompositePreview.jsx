@@ -4,7 +4,6 @@ import {
   Button,
   Card,
   CircularProgress,
-  Dialog,
   Snackbar,
   Typography,
   Alert,
@@ -20,15 +19,9 @@ export const CompositePreview = ({ photos, onReset }) => {
   const [compositeImage, setCompositeImage] = useState(null)
   const [isComposing, setIsComposing] = useState(true)
   const [isUploading, setIsUploading] = useState(false)
-  const [showAuthDialog, setShowAuthDialog] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' })
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   useEffect(() => {
-    // Check if already authenticated
-    const authenticated = googleAuthService.isAuthenticated()
-    setIsAuthenticated(authenticated)
-
     // Compose the photos
     const compose = async () => {
       try {
@@ -46,29 +39,8 @@ export const CompositePreview = ({ photos, onReset }) => {
     compose()
   }, [photos])
 
-  const handleAuthClick = async () => {
-    try {
-      setIsComposing(true)
-      await googleAuthService.initialize()
-      await googleAuthService.startOAuthFlow()
-      setIsAuthenticated(true)
-      setShowAuthDialog(false)
-      setSnackbar({ open: true, message: 'Authentication successful!', severity: 'success' })
-    } catch (error) {
-      console.error('Auth error:', error)
-      setSnackbar({ open: true, message: error.message, severity: 'error' })
-    } finally {
-      setIsComposing(false)
-    }
-  }
-
   const handleUpload = async () => {
     if (!compositeImage?.blob) return
-
-    if (!isAuthenticated) {
-      setShowAuthDialog(true)
-      return
-    }
 
     setIsUploading(true)
     try {
@@ -78,7 +50,7 @@ export const CompositePreview = ({ photos, onReset }) => {
         message: 'Successfully uploaded to Google Photos!',
         severity: 'success',
       })
-      // Optional: Auto-reset after successful upload
+      // Auto-reset after successful upload
       setTimeout(() => onReset(), 2000)
     } catch (error) {
       console.error('Upload error:', error)
@@ -163,13 +135,7 @@ export const CompositePreview = ({ photos, onReset }) => {
           color="primary"
           size="medium"
           startIcon={isUploading ? <CircularProgress size={16} /> : <CloudUploadIcon />}
-          onClick={() => {
-            if (!isAuthenticated) {
-              setShowAuthDialog(true)
-            } else {
-              handleUpload()
-            }
-          }}
+          onClick={handleUpload}
           disabled={!compositeImage || isComposing || isUploading}
         >
           {isUploading ? 'Uploading...' : 'Share'}
@@ -179,21 +145,6 @@ export const CompositePreview = ({ photos, onReset }) => {
           New
         </Button>
       </Box>
-
-      {/* Auth dialog */}
-      <Dialog open={showAuthDialog} onClose={() => setShowAuthDialog(false)}>
-        <Box sx={{ p: 3, textAlign: 'center', minWidth: 300 }}>
-          <Typography variant="h6" gutterBottom>
-            Sign In to Google
-          </Typography>
-          <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-            Sign in with your Google account to upload your photo to Google Photos.
-          </Typography>
-          <Button variant="contained" color="primary" fullWidth onClick={handleAuthClick}>
-            Sign In with Google
-          </Button>
-        </Box>
-      </Dialog>
 
       {/* Snackbar for notifications */}
       <Snackbar
