@@ -2,6 +2,8 @@
 
 A mobile-first React application that captures three sequential photos, composites them together, and uploads to Google Photos.
 
+🚀 **[Try the live app →](https://my8bird.github.io/photo-booth/)**
+
 ## Features
 
 - ✅ **Multi-Photo Capture**: Take 3 sequential photos with camera access
@@ -55,6 +57,19 @@ The app will open at `http://localhost:5173/`
 npm run build
 npm run preview
 ```
+
+### Deployment to GitHub Pages
+
+The app is deployed to GitHub Pages at `https://my8bird.github.io/photo-booth/`
+
+To configure GitHub Pages for this repository:
+1. Go to repository **Settings** → **Pages**
+2. Under "Build and deployment", select:
+   - **Branch**: `gh-pages`
+   - **Folder**: `/ (root)`
+3. Save
+
+The deployment is handled automatically via GitHub Actions when changes are pushed to the main branch.
 
 ## Usage Flow
 
