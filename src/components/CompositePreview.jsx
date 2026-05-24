@@ -2,18 +2,14 @@ import { useEffect, useState } from 'react'
 import {
   Box,
   Button,
-  Card,
   CircularProgress,
   Snackbar,
   Typography,
   Alert,
 } from '@mui/material'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
-import DownloadIcon from '@mui/icons-material/Download'
 import StartIcon from '@mui/icons-material/Start'
 import { composePhotos, downloadComposite } from '../services/imageComposite'
-import { uploadToGooglePhotos } from '../services/googlePhotosApi'
-import { googleAuthService } from '../services/googleAuth'
 
 export const CompositePreview = ({ photos, onReset }) => {
   const [compositeImage, setCompositeImage] = useState(null)
@@ -39,34 +35,43 @@ export const CompositePreview = ({ photos, onReset }) => {
     compose()
   }, [photos])
 
-  const handleUpload = async () => {
+  const handleShare = () => {
     if (!compositeImage?.blob) return
 
     setIsUploading(true)
     try {
-      const result = await uploadToGooglePhotos(compositeImage.blob, 'Photo Booth Composite')
+      // Download the image
+      downloadComposite(compositeImage.blob, 'photo-booth.jpg')
+
+      // Open email client
+      const subject = encodeURIComponent('Check out my Photo Booth composite!')
+      const body = encodeURIComponent(
+        'Hi,\n\n' +
+        'I just created this awesome photo composite using the Photo Booth app!\n\n' +
+        'The image is attached below (look for photo-booth.jpg in your downloads).\n\n' +
+        'Check it out!\n\n' +
+        'Best,\n' +
+        'Photo Booth'
+      )
+      window.location.href = `mailto:?subject=${subject}&body=${body}`
+
       setSnackbar({
         open: true,
-        message: 'Successfully uploaded to Google Photos!',
+        message: 'Image downloaded! Opening your email client...',
         severity: 'success',
       })
-      // Auto-reset after successful upload
-      setTimeout(() => onReset(), 2000)
+
+      // Reset after a short delay
+      setTimeout(() => onReset(), 2500)
     } catch (error) {
-      console.error('Upload error:', error)
+      console.error('Share error:', error)
       setSnackbar({
         open: true,
-        message: error.message,
+        message: 'Failed to prepare share. Please try again.',
         severity: 'error',
       })
     } finally {
       setIsUploading(false)
-    }
-  }
-
-  const handleDownload = () => {
-    if (compositeImage?.blob) {
-      downloadComposite(compositeImage.blob)
     }
   }
 
@@ -135,10 +140,10 @@ export const CompositePreview = ({ photos, onReset }) => {
           color="primary"
           size="medium"
           startIcon={isUploading ? <CircularProgress size={16} /> : <CloudUploadIcon />}
-          onClick={handleUpload}
+          onClick={handleShare}
           disabled={!compositeImage || isComposing || isUploading}
         >
-          {isUploading ? 'Uploading...' : 'Share'}
+          {isUploading ? 'Preparing...' : 'Share via Email'}
         </Button>
 
         <Button variant="outlined" size="medium" startIcon={<StartIcon />} onClick={onReset} disabled={isUploading}>

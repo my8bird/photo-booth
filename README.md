@@ -1,6 +1,6 @@
 # Photo Booth App
 
-A mobile-first React application that captures three sequential photos, composites them together, and uploads to Google Photos.
+A mobile-first React application that captures three sequential photos, composites them together, and shares via email.
 
 🚀 **[Try the live app →](https://my8bird.github.io/photo-booth/)**
 
@@ -8,17 +8,17 @@ A mobile-first React application that captures three sequential photos, composit
 
 - ✅ **Multi-Photo Capture**: Take 3 sequential photos with camera access
 - ✅ **Retake Capability**: Retake any photo before proceeding
-- ✅ **Image Compositing**: Automatically stack photos vertically with spacing
-- ✅ **Google Photos Integration**: Upload final composite directly to Google Photos
-- ✅ **Download Option**: Save composite as JPEG locally
+- ✅ **Image Compositing**: Automatically stack photos vertically with spacing and rounded corners
+- ✅ **Email Sharing**: Share composite via email with one click - downloads image and opens email client
 - ✅ **Mobile Optimized**: Full-screen camera view optimized for mobile devices
 - ✅ **Material Design UI**: Clean Material UI components for consistent experience
+- ✅ **Zero Configuration**: No authentication or credentials needed - just use it
 
 ## Setup
 
 ### Prerequisites
 - Node.js 16+ and npm
-- Google OAuth 2.0 credentials (Client ID)
+- No other credentials or configuration needed!
 
 ### Installation
 
@@ -28,23 +28,7 @@ cd /Users/nlandis/src/dev/dean
 npm install
 ```
 
-2. **Get Google OAuth Credentials**
-   - Go to [Google Cloud Console](https://console.cloud.google.com/)
-   - Create a new project
-   - Enable "Google Photos Library API"
-   - Create OAuth 2.0 credentials (Web application)
-   - Add redirect URI: `http://localhost:5173/` (for dev)
-   - Copy your Client ID
-
-3. **Configure Environment**
-   - Copy `.env.example` to `.env`
-   - Add your Google Client ID:
-   ```
-   VITE_GOOGLE_CLIENT_ID=your-client-id-here
-   VITE_GOOGLE_REDIRECT_URI=http://localhost:5173/
-   ```
-
-4. **Run Development Server**
+2. **Run Development Server**
 ```bash
 npm run dev
 ```
@@ -74,14 +58,13 @@ The deployment is handled automatically via GitHub Actions when changes are push
 ## Usage Flow
 
 1. **Camera Access**: Grant camera permission when prompted
-2. **Photo 1-3**: 
-   - Press "Capture Photo" to take a picture
+2. **Take Photos 1-3**: 
+   - Camera automatically counts down from 5 and captures
    - Review in preview
-   - "Retake" to recapture, or "Confirm" to proceed to next photo
-3. **Review**: After 3 photos, view the composite
-4. **Upload Options**:
-   - **Download**: Save composite to device
-   - **Upload to Google Photos**: Sign in with Google and upload
+   - "Retake" to recapture, or auto-advances to next photo
+3. **Review Composite**: View the final stacked image
+4. **Share Options**:
+   - **Share via Email**: Download image and open email client with pre-filled message
    - **New Session**: Start over with fresh photos
 
 ## Architecture
@@ -99,28 +82,21 @@ The deployment is handled automatically via GitHub Actions when changes are push
 - **googleAuth.js**: OAuth 2.0 authentication flow
 - **googlePhotosApi.js**: Google Photos Library API integration
 
-## API Details
+## Technical Details
 
 ### Image Compositing
-- **Dimensions**: 800px width, 2400px height (3x 800px photos + spacing)
-- **Spacing**: 30px between photos
+- **Dimensions**: 800px width, calculated height based on photo dimensions
+- **Spacing**: 80px between photos
+- **Rounded Corners**: 16px radius on each photo
 - **Format**: JPEG (quality 0.9)
 - **Processing**: Client-side using Canvas API
+- **Background**: White
 
-### Google OAuth
-- **Flow**: Authorization code flow with implicit fallback
-- **Scopes**: 
-  - `photoslibrary` - Read/write access to photos
-  - `photoslibrary.appendonly` - Append-only mode
-- **Token Storage**: In-memory (sessionStorage for persistence)
-
-### Google Photos Upload
-- **API**: Photos Library API v1
-- **Endpoint**: `https://photoslibrary.googleapis.com/v1/uploads`
-- **Process**:
-  1. Upload media bytes to get upload token
-  2. Create media item using token
-  3. Media saved to Google Photos library
+### Email Sharing
+- **Method**: `mailto:` URI scheme with pre-filled subject and body
+- **Image**: Automatically downloaded as `photo-booth.jpg`
+- **User Flow**: Download + open default email client
+- **Compatibility**: Works on all devices and browsers with email support
 
 ## Mobile Browser Support
 
@@ -136,14 +112,11 @@ The deployment is handled automatically via GitHub Actions when changes are push
 - On iOS, requires HTTPS in production (localhost HTTP is allowed for dev)
 - On Android, users can grant/deny permission in system settings
 
-### Google OAuth
-- Must be configured with proper redirect URIs
-- For production, add your domain to authorized redirect URIs
-- OAuth credentials should never be hardcoded; use environment variables
-
-### CORS
-- Google Photos API requires proper CORS headers
-- Image URLs must support CORS for compositing to work
+### Email Sharing
+- The app opens the user's default email client
+- The image is downloaded locally (`photo-booth.jpg`)
+- Users must manually attach the image to the email
+- Works with all email clients: Gmail, Outlook, Apple Mail, etc.
 
 ## Troubleshooting
 
@@ -151,17 +124,17 @@ The deployment is handled automatically via GitHub Actions when changes are push
 - Check browser permissions (Settings → Microphone/Camera)
 - Try a different browser
 - Verify HTTPS in production
+- On iOS, make sure you're in Safari (not in-app browser)
 
-### Google Photos upload fails
-- Verify OAuth credentials are correct
-- Check that "Google Photos Library API" is enabled in Google Cloud Console
-- Ensure redirect URI matches exactly
-- Check network tab for 401 (auth) or 403 (permissions) errors
+### Email client won't open
+- Check that your device has an email app configured
+- Try clicking "Share via Email" again
+- Some browsers may require user confirmation for opening email
 
-### Composite image cuts off
-- Ensure all 3 photos are captured successfully
-- Check browser console for JavaScript errors
-- Try a different device/browser
+### Image doesn't download
+- Check browser download permissions
+- Ensure you have storage space on your device
+- Try a different browser
 
 ## Development
 
