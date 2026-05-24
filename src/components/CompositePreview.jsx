@@ -9,7 +9,7 @@ import {
 } from '@mui/material'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
 import StartIcon from '@mui/icons-material/Start'
-import { composePhotos, downloadComposite } from '../services/imageComposite'
+import { composePhotos } from '../services/imageComposite'
 
 export const CompositePreview = ({ photos, onReset }) => {
   const [compositeImage, setCompositeImage] = useState(null)
@@ -40,29 +40,46 @@ export const CompositePreview = ({ photos, onReset }) => {
 
     setIsUploading(true)
     try {
-      // Download the image
-      downloadComposite(compositeImage.blob, 'photo-booth.jpg')
+      // Convert image blob to base64
+      const reader = new FileReader()
+      reader.onload = () => {
+        const base64Image = reader.result
 
-      // Open email client
-      const subject = encodeURIComponent('Check out my Photo Booth composite!')
-      const body = encodeURIComponent(
-        'Hi,\n\n' +
-        'I just created this awesome photo composite using the Photo Booth app!\n\n' +
-        'The image is attached below (look for photo-booth.jpg in your downloads).\n\n' +
-        'Check it out!\n\n' +
-        'Best,\n' +
-        'Photo Booth'
-      )
-      window.location.href = `mailto:?subject=${subject}&body=${body}`
+        // Create HTML email body with embedded image
+        const htmlBody = `
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+  <p>Hi,</p>
 
-      setSnackbar({
-        open: true,
-        message: 'Image downloaded! Opening your email client...',
-        severity: 'success',
-      })
+  <p>I just created this awesome photo composite using the <strong>Photo Booth app</strong>!</p>
 
-      // Reset after a short delay
-      setTimeout(() => onReset(), 2500)
+  <p style="text-align: center; margin: 30px 0;">
+    <img src="${base64Image}" alt="Photo Booth Composite" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" />
+  </p>
+
+  <p>Check it out!</p>
+
+  <p>Best,<br/>Photo Booth</p>
+</body>
+</html>
+        `.trim()
+
+        const subject = encodeURIComponent('Check out my Photo Booth composite!')
+        const body = encodeURIComponent(htmlBody)
+
+        window.location.href = `mailto:?subject=${subject}&body=${body}`
+
+        setSnackbar({
+          open: true,
+          message: 'Opening your email client with the image embedded...',
+          severity: 'success',
+        })
+
+        // Reset after a short delay
+        setTimeout(() => onReset(), 2500)
+      }
+
+      reader.readAsDataURL(compositeImage.blob)
     } catch (error) {
       console.error('Share error:', error)
       setSnackbar({
@@ -70,7 +87,6 @@ export const CompositePreview = ({ photos, onReset }) => {
         message: 'Failed to prepare share. Please try again.',
         severity: 'error',
       })
-    } finally {
       setIsUploading(false)
     }
   }

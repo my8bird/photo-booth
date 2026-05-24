@@ -64,7 +64,7 @@ The deployment is handled automatically via GitHub Actions when changes are push
    - "Retake" to recapture, or auto-advances to next photo
 3. **Review Composite**: View the final stacked image
 4. **Share Options**:
-   - **Share via Email**: Download image and open email client with pre-filled message
+   - **Share via Email**: One click opens your email client with the image embedded in the message body
    - **New Session**: Start over with fresh photos
 
 ## Architecture
@@ -93,10 +93,10 @@ The deployment is handled automatically via GitHub Actions when changes are push
 - **Background**: White
 
 ### Email Sharing
-- **Method**: `mailto:` URI scheme with pre-filled subject and body
-- **Image**: Automatically downloaded as `photo-booth.jpg`
-- **User Flow**: Download + open default email client
-- **Compatibility**: Works on all devices and browsers with email support
+- **Method**: `mailto:` URI scheme with HTML body containing embedded image
+- **Image Embedding**: Base64-encoded JPEG embedded directly in email HTML
+- **User Flow**: One click - opens email client with image already embedded
+- **Compatibility**: Works on email clients that support HTML emails (Gmail, Outlook, Apple Mail, etc.)
 
 ## Mobile Browser Support
 
@@ -113,10 +113,11 @@ The deployment is handled automatically via GitHub Actions when changes are push
 - On Android, users can grant/deny permission in system settings
 
 ### Email Sharing
-- The app opens the user's default email client
-- The image is downloaded locally (`photo-booth.jpg`)
-- Users must manually attach the image to the email
-- Works with all email clients: Gmail, Outlook, Apple Mail, etc.
+- The app opens the user's default email client with a pre-composed message
+- The image is embedded as base64 directly in the email body (HTML)
+- Users just need to add recipient email address(es) and send
+- Works with HTML-capable email clients: Gmail, Outlook, Apple Mail, etc.
+- Note: Some plain-text-only email clients may not display the embedded image
 
 ## Troubleshooting
 
@@ -131,10 +132,10 @@ The deployment is handled automatically via GitHub Actions when changes are push
 - Try clicking "Share via Email" again
 - Some browsers may require user confirmation for opening email
 
-### Image doesn't download
-- Check browser download permissions
-- Ensure you have storage space on your device
-- Try a different browser
+### Image doesn't appear in email
+- Make sure your email client supports HTML emails
+- Some email clients may have image display disabled - enable it in settings
+- The image is embedded as base64, so it displays inline without downloading
 
 ## Development
 
