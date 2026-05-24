@@ -1,7 +1,46 @@
-import { Box, Button, Typography, Container } from '@mui/material'
+import { useEffect, useState } from 'react'
+import { Box, Button, Typography, Container, CircularProgress, Alert } from '@mui/material'
 import PhotoCameraIcon from '@mui/icons-material/PhotoCamera'
+import axios from 'axios'
 
 export const LandingPage = ({ onStart }) => {
+  const [isAuthorized, setIsAuthorized] = useState(false)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const [isAuthorizing, setIsAuthorizing] = useState(false)
+
+  useEffect(() => {
+    checkAuthStatus()
+  }, [])
+
+  const checkAuthStatus = async () => {
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/status`)
+      setIsAuthorized(response.data.authorized)
+    } catch (error) {
+      console.error('Error checking auth status:', error)
+      setIsAuthorized(false)
+    } finally {
+      setIsCheckingAuth(false)
+    }
+  }
+
+  const handleAuthorize = async () => {
+    setIsAuthorizing(true)
+    try {
+      const response = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/url`)
+      window.open(response.data.authUrl, '_blank')
+
+      // Check auth status after a delay to see if user authorized
+      setTimeout(() => {
+        checkAuthStatus()
+      }, 3000)
+    } catch (error) {
+      console.error('Error getting auth URL:', error)
+    } finally {
+      setIsAuthorizing(false)
+    }
+  }
+
   return (
     <Box
       sx={{
@@ -48,24 +87,66 @@ export const LandingPage = ({ onStart }) => {
           Get ready! Each photo will auto-capture after a 5 second countdown. You can retake any photo if needed.
         </Typography>
 
-        <Button
-          variant="contained"
-          size="large"
-          sx={{
-            bgcolor: 'white',
-            color: '#667eea',
-            fontSize: '18px',
-            padding: '12px 48px',
-            fontWeight: 'bold',
-            '&:hover': {
-              bgcolor: '#f0f0f0',
-            },
-          }}
-          onClick={onStart}
-          startIcon={<PhotoCameraIcon />}
-        >
-          Start Taking Photos
-        </Button>
+        {/* Authorization Status */}
+        <Box sx={{ mb: 4 }}>
+          {isCheckingAuth ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : isAuthorized ? (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              ✅ Authorized with Google Photos
+            </Alert>
+          ) : (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              ⚠️ Not authorized. Please authorize to upload photos.
+            </Alert>
+          )}
+        </Box>
+
+        {/* Buttons */}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
+          {!isAuthorized && (
+            <Button
+              variant="contained"
+              size="large"
+              sx={{
+                bgcolor: '#4285f4',
+                color: 'white',
+                fontSize: '16px',
+                padding: '12px 32px',
+                fontWeight: 'bold',
+                '&:hover': {
+                  bgcolor: '#357ae8',
+                },
+              }}
+              onClick={handleAuthorize}
+              disabled={isAuthorizing}
+            >
+              {isAuthorizing ? 'Authorizing...' : 'Authorize with Google'}
+            </Button>
+          )}
+
+          <Button
+            variant="contained"
+            size="large"
+            sx={{
+              bgcolor: 'white',
+              color: '#667eea',
+              fontSize: '18px',
+              padding: '12px 48px',
+              fontWeight: 'bold',
+              '&:hover': {
+                bgcolor: '#f0f0f0',
+              },
+            }}
+            onClick={onStart}
+            disabled={!isAuthorized}
+            startIcon={<PhotoCameraIcon />}
+          >
+            Start Taking Photos
+          </Button>
+        </Box>
       </Container>
     </Box>
     </Box>

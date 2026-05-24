@@ -20,7 +20,7 @@ app.get('/api/auth/url', (req, res) => {
     client_id: GOOGLE_CLIENT_ID,
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
-    scope: 'https://www.googleapis.com/auth/photoslibrary',
+    scope: 'https://www.googleapis.com/auth/photoslibrary.appendonly',
     access_type: 'offline',
     prompt: 'consent',
   });
@@ -115,6 +115,7 @@ async function uploadToGooglePhotos(imageBuffer) {
 
   try {
     // Step 1: Upload media bytes
+    console.log('Uploading media bytes...');
     const uploadResponse = await axios.post(
       'https://photoslibrary.googleapis.com/v1/uploads',
       imageBuffer,
@@ -127,8 +128,15 @@ async function uploadToGooglePhotos(imageBuffer) {
       }
     );
 
-    const uploadToken = uploadResponse.data.uploadToken;
-    console.log('✅ Media uploaded, got token:', uploadToken);
+    // The upload token is returned as plain text in the response body
+    const uploadToken = uploadResponse.data;
+
+    if (!uploadToken) {
+      console.error('No uploadToken in response:', uploadResponse.data);
+      throw new Error('No upload token returned from Google Photos API');
+    }
+
+    console.log('✅ Media uploaded, got token:', uploadToken.substring(0, 50) + '...');
 
     // Step 2: Create media item
     const createResponse = await axios.post(
