@@ -1,85 +1,199 @@
 const express = require('express');
 const axios = require('axios');
 const cors = require('cors');
-const { GoogleAuth } = require('google-auth-library');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// Load service account from environment variable
-const SERVICE_ACCOUNT_KEY = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const REDIRECT_URI = process.env.REDIRECT_URI || 'http://localhost:3001/api/auth/callback';
 
-async function getAccessToken() {
-  const auth = new GoogleAuth({
-    credentials: SERVICE_ACCOUNT_KEY,
-    scopes: [
-      'https://www.googleapis.com/auth/photoslibrary',
-      'https://www.googleapis.com/auth/photoslibrary.appendonly',
-    ],
+let accessToken = null;
+let refreshToken = null;
+
+// Get authorization URL
+app.get('/api/auth/url', (req, res) => {
+  const params = new URLSearchParams({
+    client_id: GOOGLE_CLIENT_ID,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'code',
+    scope: 'https://www.googleapis.com/auth/photoslibrary',
+    access_type: 'offline',
+    prompt: 'consent',
   });
 
-  const client = await auth.getClient();
-  const token = await client.getAccessToken();
-  return token.credentials.access_token;
-}
+  const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  res.json({ authUrl });
+});
 
-async function uploadToGooglePhotos(imageBuffer) {
-  const token = await getAccessToken();
+// Handle OAuth callback
+app.get('/api/auth/callback', async (req, res) => {
+  const { code } = req.query;
 
-  // Step 1: Upload media bytes
-  const uploadResponse = await axios.post(
-    'https://photoslibrary.googleapis.com/v1/uploads',
-    imageBuffer,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'image/jpeg',
-        'X-Goog-Upload-Protocol': 'raw',
-      },
-    }
-  );
-
-  const uploadToken = uploadResponse.data.uploadToken;
-
-  // Step 2: Create media item
-  const createResponse = await axios.post(
-    'https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate',
-    {
-      newMediaItems: [
-        {
-          description: 'Photo Booth Composite',
-          simpleMediaItem: { uploadToken },
-        },
-      ],
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
-
-  const result = createResponse.data.newMediaItemResults[0];
-  if (result.mediaItem) {
-    return {
-      success: true,
-      mediaId: result.mediaItem.id,
-      url: result.mediaItem.productUrl,
-    };
+  if (!code) {
+    return res.status(400).send('No authorization code provided');
   }
 
-  throw new Error('Failed to create media item');
+  try {
+    // Exchange code for tokens
+    const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      code,
+      redirect_uri: REDIRECT_URI,
+      grant_type: 'authorization_code',
+    });
+
+    accessToken = tokenResponse.data.access_token;
+    refreshToken = tokenResponse.data.refresh_token;
+
+    console.log('✅ Authorization successful!');
+    res.send(`
+      <html>
+        <body style="font-family: Arial; text-align: center; padding: 50px;">
+          <h1>✅ Authorization Successful!</h1>
+          <p>You can close this window and return to the Photo Booth app.</p>
+          <p>Photos will now upload to your Google Photos account.</p>
+        </body>
+      </html>
+    `);
+  } catch (error) {
+    console.error('Authorization error:', error.message);
+    res.status(500).send(`
+      <html>
+        <body style="font-family: Arial; text-align: center; padding: 50px;">
+          <h1>❌ Authorization Failed</h1>
+          <p>${error.message}</p>
+        </body>
+      </html>
+    `);
+  }
+});
+
+// Check authorization status
+app.get('/api/auth/status', (req, res) => {
+  res.json({
+    authorized: !!accessToken,
+    message: accessToken ? 'Authorized' : 'Not authorized',
+  });
+});
+
+// Refresh token if needed
+async function refreshAccessToken() {
+  if (!refreshToken) {
+    throw new Error('No refresh token available');
+  }
+
+  try {
+    const response = await axios.post('https://oauth2.googleapis.com/token', {
+      client_id: GOOGLE_CLIENT_ID,
+      client_secret: GOOGLE_CLIENT_SECRET,
+      refresh_token: refreshToken,
+      grant_type: 'refresh_token',
+    });
+
+    accessToken = response.data.access_token;
+    console.log('✅ Token refreshed');
+    return accessToken;
+  } catch (error) {
+    console.error('Token refresh error:', error.message);
+    accessToken = null;
+    throw error;
+  }
 }
 
+// Upload to Google Photos
+async function uploadToGooglePhotos(imageBuffer) {
+  if (!accessToken) {
+    throw new Error('Not authorized. Please authorize first.');
+  }
+
+  console.log('Got access token, uploading to Google Photos...');
+
+  try {
+    // Step 1: Upload media bytes
+    const uploadResponse = await axios.post(
+      'https://photoslibrary.googleapis.com/v1/uploads',
+      imageBuffer,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'image/jpeg',
+          'X-Goog-Upload-Protocol': 'raw',
+        },
+      }
+    );
+
+    const uploadToken = uploadResponse.data.uploadToken;
+    console.log('✅ Media uploaded, got token:', uploadToken);
+
+    // Step 2: Create media item
+    const createResponse = await axios.post(
+      'https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate',
+      {
+        newMediaItems: [
+          {
+            description: 'Photo Booth Composite',
+            simpleMediaItem: { uploadToken },
+          },
+        ],
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const result = createResponse.data.newMediaItemResults[0];
+    if (result.mediaItem) {
+      return {
+        success: true,
+        mediaId: result.mediaItem.id,
+        url: result.mediaItem.productUrl,
+      };
+    }
+
+    throw new Error('Failed to create media item');
+  } catch (error) {
+    // Try to refresh token if it's expired
+    if (error.response?.status === 401) {
+      console.log('Token expired, refreshing...');
+      try {
+        await refreshAccessToken();
+        // Retry upload with new token
+        return uploadToGooglePhotos(imageBuffer);
+      } catch (refreshError) {
+        throw new Error('Authorization expired. Please authorize again.');
+      }
+    }
+
+    console.error('Error uploading to Google Photos:', error.message);
+    if (error.response) {
+      console.error('Google API response:', error.response.status, error.response.data);
+    }
+    throw error;
+  }
+}
+
+// Upload endpoint
 app.post('/api/upload', async (req, res) => {
   try {
     const { image } = req.body;
 
     if (!image) {
       return res.status(400).json({ error: 'No image provided' });
+    }
+
+    if (!accessToken) {
+      return res.status(401).json({
+        error: 'Not authorized',
+        message: 'Please authorize first',
+      });
     }
 
     // Convert base64 to buffer
@@ -94,21 +208,21 @@ app.post('/api/upload', async (req, res) => {
       ...result,
     });
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('Upload error:', error.message);
     res.status(500).json({
-      error: 'Failed to upload to Google Photos',
+      error: 'Failed to upload',
       message: error.message,
     });
   }
 });
 
+// Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK' });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Local: http://localhost:${PORT}`);
-  console.log(`Expose with ngrok: ngrok http ${PORT}`);
 });

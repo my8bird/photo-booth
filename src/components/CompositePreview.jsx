@@ -59,7 +59,7 @@ export const CompositePreview = ({ photos, onReset }) => {
           if (response.data.success) {
             setSnackbar({
               open: true,
-              message: '✅ Successfully uploaded to Google Photos!',
+              message: '✅ Successfully uploaded to Google Drive!',
               severity: 'success',
             })
             setTimeout(() => onReset(), 2500)
@@ -67,7 +67,7 @@ export const CompositePreview = ({ photos, onReset }) => {
             throw new Error(response.data.error || 'Upload failed')
           }
         } catch (error) {
-          console.error('Upload error:', error)
+          console.error('Drive upload error:', error)
           setSnackbar({
             open: true,
             message: `Upload failed: ${error.message}`,
