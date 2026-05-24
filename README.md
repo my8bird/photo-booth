@@ -18,7 +18,8 @@ A mobile-first React application that captures three sequential photos, composit
 
 ### Prerequisites
 - Node.js 16+ and npm
-- No other credentials or configuration needed!
+- Google Cloud Function deployed (see SETUP_GOOGLE_CLOUD_FUNCTION.md)
+- Service account with access to Google Photos
 
 ### Installation
 
@@ -28,12 +29,24 @@ cd /Users/nlandis/src/dev/dean
 npm install
 ```
 
-2. **Run Development Server**
+2. **Configure Backend URL**
+   - Open `.env`
+   - Update `VITE_UPLOAD_FUNCTION_URL` with your Cloud Function URL
+   - Example: `https://us-central1-my-project.cloudfunctions.net/uploadPhoto`
+
+3. **Run Development Server**
 ```bash
 npm run dev
 ```
 
 The app will open at `http://localhost:5173/`
+
+### Backend Setup
+
+For detailed instructions on setting up the Google Cloud Function backend:
+1. Read [SETUP_GOOGLE_CLOUD_FUNCTION.md](SETUP_GOOGLE_CLOUD_FUNCTION.md)
+2. Deploy the function from `backend/` directory
+3. Update `.env` with your function URL
 
 ### Production Build
 
@@ -64,7 +77,7 @@ The deployment is handled automatically via GitHub Actions when changes are push
    - "Retake" to recapture, or auto-advances to next photo
 3. **Review Composite**: View the final stacked image
 4. **Share Options**:
-   - **Share via Email**: One click opens your email client with the image embedded in the message body
+   - **Share to Google Photos**: One click uploads the image directly to Google Photos (automatic, no authentication needed)
    - **New Session**: Start over with fresh photos
 
 ## Architecture
@@ -92,11 +105,16 @@ The deployment is handled automatically via GitHub Actions when changes are push
 - **Processing**: Client-side using Canvas API
 - **Background**: White
 
-### Email Sharing
-- **Method**: `mailto:` URI scheme with HTML body containing embedded image
-- **Image Embedding**: Base64-encoded JPEG embedded directly in email HTML
-- **User Flow**: One click - opens email client with image already embedded
-- **Compatibility**: Works on email clients that support HTML emails (Gmail, Outlook, Apple Mail, etc.)
+### Google Photos Upload
+- **Backend**: Google Cloud Function (Node.js 20)
+- **Architecture**: 
+  1. Frontend converts composite image to base64
+  2. Sends to Cloud Function via HTTPS POST
+  3. Function authenticates with service account
+  4. Function calls Google Photos Library API v1
+  5. Photo uploaded to shared Google Photos account
+- **User Flow**: One click → automatic upload → confirmation message
+- **No User Authentication**: Service account handles all auth
 
 ## Mobile Browser Support
 
@@ -112,12 +130,12 @@ The deployment is handled automatically via GitHub Actions when changes are push
 - On iOS, requires HTTPS in production (localhost HTTP is allowed for dev)
 - On Android, users can grant/deny permission in system settings
 
-### Email Sharing
-- The app opens the user's default email client with a pre-composed message
-- The image is embedded as base64 directly in the email body (HTML)
-- Users just need to add recipient email address(es) and send
-- Works with HTML-capable email clients: Gmail, Outlook, Apple Mail, etc.
-- Note: Some plain-text-only email clients may not display the embedded image
+### Google Photos Upload
+- No user login required - happens automatically via service account
+- Photos upload to the shared Google Photos account configured in the service account
+- Uploads happen in the background with user confirmation
+- Image is sent as base64-encoded JPEG to the backend function
+- Backend function handles all Google authentication and API calls
 
 ## Troubleshooting
 
@@ -127,15 +145,16 @@ The deployment is handled automatically via GitHub Actions when changes are push
 - Verify HTTPS in production
 - On iOS, make sure you're in Safari (not in-app browser)
 
-### Email client won't open
-- Check that your device has an email app configured
-- Try clicking "Share via Email" again
-- Some browsers may require user confirmation for opening email
+### Upload to Google Photos fails
+- Verify `VITE_UPLOAD_FUNCTION_URL` is set correctly in `.env`
+- Check that the Cloud Function is deployed and accessible
+- Verify service account has Google Photos permissions
+- Check Cloud Function logs in Google Cloud Console
+- See [SETUP_GOOGLE_CLOUD_FUNCTION.md](SETUP_GOOGLE_CLOUD_FUNCTION.md) for detailed troubleshooting
 
-### Image doesn't appear in email
-- Make sure your email client supports HTML emails
-- Some email clients may have image display disabled - enable it in settings
-- The image is embedded as base64, so it displays inline without downloading
+### "Upload token not configured" error
+- Make sure `VITE_UPLOAD_FUNCTION_URL` is not empty in `.env`
+- Rebuild the app after updating `.env`: `npm run build`
 
 ## Development
 

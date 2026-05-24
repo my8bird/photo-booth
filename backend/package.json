@@ -1,0 +1,14 @@
+{
+  "name": "photo-booth-upload-function",
+  "version": "1.0.0",
+  "description": "Google Cloud Function for uploading Photo Booth composites to Google Photos",
+  "main": "upload-function.js",
+  "dependencies": {
+    "@google-cloud/functions-framework": "^3.5.0",
+    "@google-auth-library": "^9.6.0",
+    "axios": "^1.7.0"
+  },
+  "engines": {
+    "node": "20"
+  }
+}

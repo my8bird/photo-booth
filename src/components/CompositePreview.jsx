@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import axios from 'axios'
 import {
   Box,
   Button,
@@ -35,48 +36,45 @@ export const CompositePreview = ({ photos, onReset }) => {
     compose()
   }, [photos])
 
-  const handleShare = () => {
+  const handleShare = async () => {
     if (!compositeImage?.blob) return
 
     setIsUploading(true)
     try {
-      // Convert image blob to base64
       const reader = new FileReader()
-      reader.onload = () => {
-        const base64Image = reader.result
+      reader.onload = async () => {
+        try {
+          // Extract base64 image data (remove data URL prefix)
+          const base64Image = reader.result.split(',')[1]
 
-        // Create HTML email body with embedded image
-        const htmlBody = `
-<html>
-<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-  <p>Hi,</p>
+          // Send to backend function
+          const response = await axios.post(
+            import.meta.env.VITE_UPLOAD_FUNCTION_URL,
+            { image: base64Image },
+            {
+              headers: { 'Content-Type': 'application/json' },
+            }
+          )
 
-  <p>I just created this awesome photo composite using the <strong>Photo Booth app</strong>!</p>
-
-  <p style="text-align: center; margin: 30px 0;">
-    <img src="${base64Image}" alt="Photo Booth Composite" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.2);" />
-  </p>
-
-  <p>Check it out!</p>
-
-  <p>Best,<br/>Photo Booth</p>
-</body>
-</html>
-        `.trim()
-
-        const subject = encodeURIComponent('Check out my Photo Booth composite!')
-        const body = encodeURIComponent(htmlBody)
-
-        window.location.href = `mailto:my8bird@gmail.com?subject=${subject}&body=${body}`
-
-        setSnackbar({
-          open: true,
-          message: 'Opening your email client with the image embedded...',
-          severity: 'success',
-        })
-
-        // Reset after a short delay
-        setTimeout(() => onReset(), 2500)
+          if (response.data.success) {
+            setSnackbar({
+              open: true,
+              message: '✅ Successfully uploaded to Google Photos!',
+              severity: 'success',
+            })
+            setTimeout(() => onReset(), 2500)
+          } else {
+            throw new Error(response.data.error || 'Upload failed')
+          }
+        } catch (error) {
+          console.error('Upload error:', error)
+          setSnackbar({
+            open: true,
+            message: `Upload failed: ${error.message}`,
+            severity: 'error',
+          })
+          setIsUploading(false)
+        }
       }
 
       reader.readAsDataURL(compositeImage.blob)
@@ -159,7 +157,7 @@ export const CompositePreview = ({ photos, onReset }) => {
           onClick={handleShare}
           disabled={!compositeImage || isComposing || isUploading}
         >
-          {isUploading ? 'Preparing...' : 'Share via Email'}
+          {isUploading ? 'Uploading...' : 'Share to Google Photos'}
         </Button>
 
         <Button variant="outlined" size="medium" startIcon={<StartIcon />} onClick={onReset} disabled={isUploading}>
