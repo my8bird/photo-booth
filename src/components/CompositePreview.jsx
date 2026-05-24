@@ -59,18 +59,18 @@ export const CompositePreview = ({ photos, onReset }) => {
           if (response.data.success) {
             setSnackbar({
               open: true,
-              message: '✅ Email sent with photo!',
+              message: '✅ Successfully uploaded to Google Photos!',
               severity: 'success',
             })
             setTimeout(() => onReset(), 2500)
           } else {
-            throw new Error(response.data.error || 'Send failed')
+            throw new Error(response.data.error || 'Upload failed')
           }
         } catch (error) {
-          console.error('Share error:', error)
+          console.error('Upload error:', error)
           setSnackbar({
             open: true,
-            message: `Failed to send: ${error.message}`,
+            message: `Upload failed: ${error.message}`,
             severity: 'error',
           })
           setIsUploading(false)
@@ -157,7 +157,7 @@ export const CompositePreview = ({ photos, onReset }) => {
           onClick={handleShare}
           disabled={!compositeImage || isComposing || isUploading}
         >
-          {isUploading ? 'Sending...' : 'Send Email'}
+          {isUploading ? 'Uploading...' : 'Upload'}
         </Button>
 
         <Button variant="outlined" size="medium" startIcon={<StartIcon />} onClick={onReset} disabled={isUploading}>

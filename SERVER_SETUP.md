@@ -1,24 +1,29 @@
-# Email Backend Setup Guide
+# Local Backend Setup Guide
 
-This guide walks you through setting up the local Node.js email backend that sends photo booth composites to my8bird@gmail.com.
+This guide walks you through setting up the local Node.js backend that uploads photo booth composites directly to Google Photos.
 
 ## Prerequisites
 
 - Node.js 18+ installed
-- Gmail account
+- Google Cloud service account with Google Photos Library API access
+- Service account JSON key
 - ngrok (for exposing to internet)
 
-## Step 1: Get Gmail App Password
+## Step 1: Create Google Service Account
 
-The backend uses Gmail SMTP to send emails. You need to:
+The backend uses a Google service account to upload to Google Photos. Follow these steps:
 
-1. Go to [myaccount.google.com](https://myaccount.google.com)
-2. Click **Security** in the left sidebar
-3. Make sure **2-Step Verification** is ON (enable it if not)
-4. Scroll down to **App passwords** (appears only if 2-Step Verification is enabled)
-5. Select **Mail** and **Windows Computer** (or your device)
-6. Google will generate a 16-character app password
-7. **Copy this password** - you'll use it in the next step
+1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+2. Create a new project named `photo-booth` (or select existing)
+3. Go to **APIs & Services** → **Library**
+4. Enable **Google Photos Library API**
+5. Go to **APIs & Services** → **Service Accounts**
+6. Click **CREATE SERVICE ACCOUNT**
+   - Name: `photo-booth`
+   - Click **CREATE AND CONTINUE** → **DONE**
+7. Click the service account, go to **KEYS** tab
+8. Click **ADD KEY** → **Create new key** → **JSON**
+9. A JSON file will download - **save it securely**
 
 ## Step 2: Setup Backend Environment
 
@@ -37,12 +42,15 @@ cp .env.example .env
 nano .env
 ```
 
-4. Replace with your values:
-```
-EMAIL_USER=your-email@gmail.com
-EMAIL_PASSWORD=YOUR_16_CHAR_APP_PASSWORD
-PORT=3000
-```
+4. Paste your entire service account JSON key:
+   - Open the downloaded JSON file
+   - Copy ALL of its contents
+   - In `.env`, replace the entire value after `GOOGLE_SERVICE_ACCOUNT_KEY=` with the JSON
+   - Example:
+   ```
+   GOOGLE_SERVICE_ACCOUNT_KEY={"type":"service_account","project_id":"photo-booth-12345",...}
+   PORT=3000
+   ```
 
 5. Save the file (Ctrl+X, Y, Enter)
 
@@ -127,17 +135,17 @@ npm run dev
 1. Open the app at `http://localhost:5173`
 2. Click "Start Taking Photos"
 3. Take 3 photos
-4. Click "Send Email"
+4. Click "Upload"
 5. Wait a moment...
-6. You should see: ✅ **Email sent with photo!**
-7. Check your email inbox at my8bird@gmail.com - you should have the photo as an attachment!
+6. You should see: ✅ **Successfully uploaded to Google Photos!**
+7. Check Google Photos (photos.google.com) - your composite should appear there!
 
 ## Troubleshooting
 
-### "Error: Invalid login" or "Invalid credentials"
-- Check that you used an **app password** (16 characters), not your regular Gmail password
-- Verify 2-Step Verification is enabled in your Google account
-- Make sure EMAIL_USER and EMAIL_PASSWORD are correct in `.env`
+### "Invalid service account" or "Permission denied"
+- Verify the entire JSON key is pasted in `.env` (not truncated)
+- Make sure Google Photos Library API is enabled in Google Cloud Console
+- Check that service account has proper permissions
 
 ### "Connection refused" or "Cannot POST /api/upload"
 - Make sure the backend server is running (`npm start`)
@@ -150,9 +158,14 @@ npm run dev
 - Rebuild the frontend: `npm run build`
 - Or upgrade to ngrok Pro for static URLs
 
-### Email doesn't arrive
-- Check spam/trash folder
-- Verify `EMAIL_USER` is set to the Gmail account you want emails from
+### Upload fails with "403 Forbidden"
+- Service account may not have access to Google Photos
+- Try uploading from a Google account that has photos
+- Check backend logs for detailed error
+
+### Photo doesn't appear in Google Photos
+- Check the Google account associated with your service account
+- May need to sign in and authorize the service account first
 - Check backend console for errors
 
 ## Running Everything (Quick Start)
@@ -178,19 +191,20 @@ cd /Users/nlandis/src/dev/dean
 npm run dev
 ```
 
-That's it! The app will be live at `http://localhost:5173` with emails going to my8bird@gmail.com.
+That's it! The app will be live at `http://localhost:5173` with photos uploading directly to Google Photos.
 
 ## Production Deployment
 
 For production (deploying to the internet):
 
-1. Keep the backend running on your machine, OR
+1. Keep the backend running on your machine using a process manager, OR
 2. Deploy the server to a hosting platform:
-   - Railway.app (easiest, free tier available)
+   - Google Cloud Run (recommended, integrates with service account)
+   - Railway.app (easy, free tier available)
    - Render.com
-   - Heroku (paid)
-   - AWS/Google Cloud
+   - AWS/Lambda
 
-3. Update `.env` with the production URL
+3. Update frontend `.env` with the production URL
+4. Store `GOOGLE_SERVICE_ACCOUNT_KEY` as environment variable on hosting platform
 
 For now, ngrok is perfect for development and testing!

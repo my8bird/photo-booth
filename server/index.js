@@ -1,20 +1,78 @@
 const express = require('express');
-const nodemailer = require('nodemailer');
+const axios = require('axios');
 const cors = require('cors');
+const { GoogleAuth } = require('google-auth-library');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
-// Configure email transporter
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-});
+// Load service account from environment variable
+const SERVICE_ACCOUNT_KEY = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+
+async function getAccessToken() {
+  const auth = new GoogleAuth({
+    credentials: SERVICE_ACCOUNT_KEY,
+    scopes: [
+      'https://www.googleapis.com/auth/photoslibrary',
+      'https://www.googleapis.com/auth/photoslibrary.appendonly',
+    ],
+  });
+
+  const client = await auth.getClient();
+  const token = await client.getAccessToken();
+  return token.credentials.access_token;
+}
+
+async function uploadToGooglePhotos(imageBuffer) {
+  const token = await getAccessToken();
+
+  // Step 1: Upload media bytes
+  const uploadResponse = await axios.post(
+    'https://photoslibrary.googleapis.com/v1/uploads',
+    imageBuffer,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'image/jpeg',
+        'X-Goog-Upload-Protocol': 'raw',
+      },
+    }
+  );
+
+  const uploadToken = uploadResponse.data.uploadToken;
+
+  // Step 2: Create media item
+  const createResponse = await axios.post(
+    'https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate',
+    {
+      newMediaItems: [
+        {
+          description: 'Photo Booth Composite',
+          simpleMediaItem: { uploadToken },
+        },
+      ],
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+
+  const result = createResponse.data.newMediaItemResults[0];
+  if (result.mediaItem) {
+    return {
+      success: true,
+      mediaId: result.mediaItem.id,
+      url: result.mediaItem.productUrl,
+    };
+  }
+
+  throw new Error('Failed to create media item');
+}
 
 app.post('/api/upload', async (req, res) => {
   try {
@@ -27,33 +85,18 @@ app.post('/api/upload', async (req, res) => {
     // Convert base64 to buffer
     const imageBuffer = Buffer.from(image, 'base64');
 
-    // Send email with attachment
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: 'my8bird@gmail.com',
-      subject: 'Photo Booth Composite',
-      html: `
-        <h2>Photo Booth Composite</h2>
-        <p>A new photo booth composite has been created!</p>
-        <p>Check the attachment below.</p>
-      `,
-      attachments: [
-        {
-          filename: 'photo-booth.jpg',
-          content: imageBuffer,
-          contentType: 'image/jpeg',
-        },
-      ],
-    });
+    // Upload to Google Photos
+    const result = await uploadToGooglePhotos(imageBuffer);
 
     res.json({
       success: true,
-      message: 'Email sent successfully!',
+      message: 'Successfully uploaded to Google Photos!',
+      ...result,
     });
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Upload error:', error);
     res.status(500).json({
-      error: 'Failed to send email',
+      error: 'Failed to upload to Google Photos',
       message: error.message,
     });
   }
