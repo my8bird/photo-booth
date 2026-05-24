@@ -47,9 +47,9 @@ export const CompositePreview = ({ photos, onReset }) => {
           // Extract base64 image data (remove data URL prefix)
           const base64Image = reader.result.split(',')[1]
 
-          // Send to backend function
+          // Send to backend server
           const response = await axios.post(
-            import.meta.env.VITE_UPLOAD_FUNCTION_URL,
+            `${import.meta.env.VITE_BACKEND_URL}/api/upload`,
             { image: base64Image },
             {
               headers: { 'Content-Type': 'application/json' },
@@ -59,18 +59,18 @@ export const CompositePreview = ({ photos, onReset }) => {
           if (response.data.success) {
             setSnackbar({
               open: true,
-              message: '✅ Successfully uploaded to Google Photos!',
+              message: '✅ Email sent with photo!',
               severity: 'success',
             })
             setTimeout(() => onReset(), 2500)
           } else {
-            throw new Error(response.data.error || 'Upload failed')
+            throw new Error(response.data.error || 'Send failed')
           }
         } catch (error) {
-          console.error('Upload error:', error)
+          console.error('Share error:', error)
           setSnackbar({
             open: true,
-            message: `Upload failed: ${error.message}`,
+            message: `Failed to send: ${error.message}`,
             severity: 'error',
           })
           setIsUploading(false)
@@ -157,7 +157,7 @@ export const CompositePreview = ({ photos, onReset }) => {
           onClick={handleShare}
           disabled={!compositeImage || isComposing || isUploading}
         >
-          {isUploading ? 'Uploading...' : 'Share to Google Photos'}
+          {isUploading ? 'Sending...' : 'Send Email'}
         </Button>
 
         <Button variant="outlined" size="medium" startIcon={<StartIcon />} onClick={onReset} disabled={isUploading}>
