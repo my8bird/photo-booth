@@ -67,7 +67,7 @@ export const CompositePreview = ({ photos, onReset }) => {
         const subject = encodeURIComponent('Check out my Photo Booth composite!')
         const body = encodeURIComponent(htmlBody)
 
-        window.location.href = `mailto:?subject=${subject}&body=${body}`
+        window.location.href = `mailto:my8bird@gmail.com?subject=${subject}&body=${body}`
 
         setSnackbar({
           open: true,
