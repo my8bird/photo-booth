@@ -5,6 +5,7 @@ import axios from 'axios'
 const ANIMATION_DURATION = 10000 // 10 seconds for animation
 const LOAD_INTERVAL = 10000 // Request new photo every 10 seconds
 const MAX_IMAGES = 4
+const IMAGE_SIZE = 800 // Match composite image width
 
 export const Slideshow = () => {
   const [images, setImages] = useState([])
@@ -125,29 +126,25 @@ export const Slideshow = () => {
 
 const AnimatedImage = ({ image, onAnimationComplete }) => {
   const getInitialPosition = (entryPosition, viewportWidth, viewportHeight) => {
-    const imageSize = 300 // Size of image
-
     const positions = {
-      top: { x: Math.random() * (viewportWidth - imageSize), y: -imageSize },
-      bottom: { x: Math.random() * (viewportWidth - imageSize), y: viewportHeight },
-      left: { x: -imageSize, y: Math.random() * (viewportHeight - imageSize) },
-      right: { x: viewportWidth, y: Math.random() * (viewportHeight - imageSize) },
+      top: { x: Math.random() * (viewportWidth - IMAGE_SIZE), y: -IMAGE_SIZE },
+      bottom: { x: Math.random() * (viewportWidth - IMAGE_SIZE), y: viewportHeight },
+      left: { x: -IMAGE_SIZE, y: Math.random() * (viewportHeight - IMAGE_SIZE) },
+      right: { x: viewportWidth, y: Math.random() * (viewportHeight - IMAGE_SIZE) },
     }
     return positions[entryPosition]
   }
 
   const getExitPosition = (entryPosition, viewportWidth, viewportHeight, direction) => {
-    const imageSize = 300
-
     if (entryPosition === 'top' || entryPosition === 'bottom') {
       return {
-        x: Math.random() * (viewportWidth - imageSize),
-        y: direction.y > 0 ? viewportHeight : -imageSize,
+        x: Math.random() * (viewportWidth - IMAGE_SIZE),
+        y: direction.y > 0 ? viewportHeight : -IMAGE_SIZE,
       }
     } else {
       return {
-        x: direction.x > 0 ? viewportWidth : -imageSize,
-        y: Math.random() * (viewportHeight - imageSize),
+        x: direction.x > 0 ? viewportWidth : -IMAGE_SIZE,
+        y: Math.random() * (viewportHeight - IMAGE_SIZE),
       }
     }
   }
@@ -182,8 +179,8 @@ const AnimatedImage = ({ image, onAnimationComplete }) => {
       }}
       sx={{
         position: 'absolute',
-        width: '300px',
-        height: '300px',
+        width: `${IMAGE_SIZE}px`,
+        height: `${IMAGE_SIZE}px`,
         objectFit: 'cover',
         borderRadius: '8px',
         boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
