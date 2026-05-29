@@ -39,7 +39,7 @@ app.get('/api/auth/url', (req, res) => {
     client_id: GOOGLE_CLIENT_ID,
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
-    scope: 'https://www.googleapis.com/auth/photoslibrary.appendonly',
+    scope: 'https://www.googleapis.com/auth/photoslibrary https://www.googleapis.com/auth/photoslibrary.appendonly',
     access_type: 'offline',
     prompt: 'consent',
   });
