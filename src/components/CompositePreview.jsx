@@ -179,7 +179,7 @@ export const CompositePreview = ({ photos, onReset }) => {
           onClick={handleUpload}
           disabled={!compositeImage || isComposing || isUploading || !backendUrl}
         >
-          {isUploading ? 'Uploading...' : 'Upload to Google Photos'}
+          {isUploading ? 'Uploading...' : 'Upload'}
         </Button>
 
         <Button variant="outlined" size="medium" startIcon={<StartIcon />} onClick={onReset} disabled={isUploading}>

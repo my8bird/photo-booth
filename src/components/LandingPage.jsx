@@ -98,32 +98,8 @@ export const LandingPage = ({ onStart }) => {
         </Typography>
 
         <Typography variant="body1" sx={{ mb: 6, opacity: 0.8 }}>
-          Get ready! Each photo will auto-capture after a 5 second countdown. You can retake any photo if needed. asdfasf
+          Get ready! Each photo will auto-capture after a 5 second countdown. You can retake any photo if needed.
         </Typography>
-
-        {/* Debug info */}
-        <Box sx={{ mb: 4, p: 2, bgcolor: 'rgba(0,0,0,0.3)', borderRadius: 1 }}>
-          <Typography variant="caption" sx={{ opacity: 0.7, display: 'block' }}>
-            Backend URL: {backendUrl ? backendUrl : '❌ NOT SET'}
-          </Typography>
-        </Box>
-
-        {/* Authorization Status */}
-        <Box sx={{ mb: 4 }}>
-          {isCheckingAuth ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-              <CircularProgress size={24} />
-            </Box>
-          ) : isAuthorized ? (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              ✅ Authorized with Google Photos
-            </Alert>
-          ) : (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              ⚠️ Not authorized. Please authorize to upload photos.
-            </Alert>
-          )}
-        </Box>
 
         {/* Buttons */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
@@ -142,7 +118,7 @@ export const LandingPage = ({ onStart }) => {
                 },
               }}
               onClick={handleAuthorize}
-              disabled={isAuthorizing}
+              disabled={isAuthorizing || isCheckingAuth}
             >
               {isAuthorizing ? 'Authorizing...' : 'Authorize with Google'}
             </Button>
@@ -162,7 +138,7 @@ export const LandingPage = ({ onStart }) => {
               },
             }}
             onClick={onStart}
-            disabled={!isAuthorized}
+            disabled={isCheckingAuth}
             startIcon={<PhotoCameraIcon />}
           >
             Start Taking Photos
