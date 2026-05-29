@@ -13,12 +13,20 @@ function App() {
   const [hasStarted, setHasStarted] = useState(false)
   const [currentPage, setCurrentPage] = useState('home') // 'home', 'photobooth', 'slideshow'
 
-  // Check URL for slideshow route
+  // Check URL hash for slideshow route
   useEffect(() => {
-    const path = window.location.pathname
-    if (path.includes('/slideshow')) {
-      setCurrentPage('slideshow')
+    const handleHashChange = () => {
+      const hash = window.location.hash
+      if (hash === '#/slideshow' || hash === '#slideshow') {
+        setCurrentPage('slideshow')
+      } else {
+        setCurrentPage('home')
+      }
     }
+
+    handleHashChange()
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
   const handleStart = () => {
