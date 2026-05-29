@@ -17,6 +17,7 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
     videoRef.current = el
     if (el && streamRef.current) {
       el.srcObject = streamRef.current
+      el.play().catch(err => console.error('Video play error:', err))
     }
   }, [])
 
@@ -71,13 +72,25 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream
-        }
 
-        // Wait for video to be ready before starting countdown
-        if (videoRef.current) {
-          videoRef.current.onloadedmetadata = () => {
-            setCameraReady(true)
+          // Wait for both metadata AND actual video dimensions
+          let readyTimeout
+          const checkAndSetReady = () => {
+            if (videoRef.current?.videoWidth > 0 && videoRef.current?.videoHeight > 0) {
+              clearTimeout(readyTimeout)
+              console.log('Camera ready with dimensions:', videoRef.current.videoWidth, 'x', videoRef.current.videoHeight)
+              setCameraReady(true)
+            }
           }
+
+          videoRef.current.onloadedmetadata = checkAndSetReady
+          videoRef.current.onplaying = checkAndSetReady
+
+          // Fallback: if metadata doesn't load within 3 seconds, mark ready anyway
+          readyTimeout = setTimeout(() => {
+            console.warn('Camera ready timeout, proceeding with dimensions:', videoRef.current?.videoWidth, 'x', videoRef.current?.videoHeight)
+            setCameraReady(true)
+          }, 3000)
         }
       } catch (err) {
         console.error('Camera error:', err)
@@ -103,34 +116,78 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
     // Make sure video is reconnected to stream
     if (videoRef.current && streamRef.current) {
       videoRef.current.srcObject = streamRef.current
+      videoRef.current.play().catch(err => console.error('Play error:', err))
 
-      // If video already has metadata, immediately set ready
-      if (videoRef.current.readyState >= 1) {
+      // Since stream is already active, immediately set ready
+      // (we already waited for it to be ready on initial load)
+      if (videoRef.current.videoWidth > 0 && videoRef.current.videoHeight > 0) {
         setCameraReady(true)
       } else {
-        // Otherwise wait for metadata to load
-        videoRef.current.onloadedmetadata = () => {
-          setCameraReady(true)
+        // If for some reason dimensions aren't available, quick check with timeout
+        const checkReady = () => {
+          if (videoRef.current?.videoWidth > 0 && videoRef.current?.videoHeight > 0) {
+            setCameraReady(true)
+          } else {
+            // Just set ready anyway after a short delay
+            setTimeout(() => setCameraReady(true), 500)
+          }
         }
+        checkReady()
       }
-
-      videoRef.current.play().catch(err => console.error('Play error:', err))
     }
   }, [photoIndex])
 
-  const capturePhotoAuto = () => {
-    if (videoRef.current && canvasRef.current) {
-      const context = canvasRef.current.getContext('2d')
-      canvasRef.current.width = videoRef.current.videoWidth
-      canvasRef.current.height = videoRef.current.videoHeight
-      context.drawImage(videoRef.current, 0, 0)
+  const capturePhotoAuto = (retryCount = 0) => {
+    if (!videoRef.current || !canvasRef.current) {
+      console.error('Video or canvas not available')
+      return
+    }
 
-      canvasRef.current.toBlob(blob => {
-        const url = URL.createObjectURL(blob)
-        setPreviewImage(url)
-        setIsCaptured(true)
-        onCapture(blob)
-      }, 'image/jpeg', 0.95)
+    try {
+      const video = videoRef.current
+      const canvas = canvasRef.current
+      const context = canvas.getContext('2d')
+
+      // Check if video has dimensions
+      if (video.videoWidth === 0 || video.videoHeight === 0) {
+        console.warn('Video dimensions not ready, attempt', retryCount + 1)
+        // Retry up to 3 times with 100ms delay
+        if (retryCount < 3) {
+          setTimeout(() => capturePhotoAuto(retryCount + 1), 100)
+        } else {
+          console.error('Video dimensions still not ready after retries')
+          setError('Unable to capture photo. Please check camera permissions.')
+        }
+        return
+      }
+
+      canvas.width = video.videoWidth
+      canvas.height = video.videoHeight
+
+      // Draw the video frame to canvas
+      context.drawImage(video, 0, 0)
+
+      // Convert canvas to blob with better error handling
+      canvas.toBlob(
+        blob => {
+          if (!blob) {
+            console.error('Canvas toBlob returned null')
+            return
+          }
+          try {
+            const url = URL.createObjectURL(blob)
+            setPreviewImage(url)
+            setIsCaptured(true)
+            onCapture(blob)
+          } catch (e) {
+            console.error('Error creating object URL:', e)
+          }
+        },
+        'image/jpeg',
+        0.95
+      )
+    } catch (err) {
+      console.error('Capture error:', err)
     }
   }
 
@@ -163,29 +220,22 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
     )
   }
 
-  if (!cameraReady && !isCaptured) {
-    return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', bgcolor: '#000', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' }}>
-        <Typography variant="h4" sx={{ color: 'white', fontSize: '2.5rem', textAlign: 'center', px: 2 }}>
-          Start your photo booth by enabling your camera
-        </Typography>
-        <video
-          ref={setVideoRef}
-          autoPlay
-          muted
-          playsInline
-          style={{
-            display: 'none',
-          }}
-        />
-      </Box>
-    )
-  }
-
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw', bgcolor: '#000', overflow: 'hidden' }}>
+      {/* Loading state message */}
+      {!cameraReady && !isCaptured && (
+        <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 5, bgcolor: 'rgba(0,0,0,0.5)' }}>
+          <Box sx={{ textAlign: 'center' }}>
+            <CircularProgress sx={{ color: 'white', mb: 2 }} />
+            <Typography variant="h6" sx={{ color: 'white' }}>
+              Starting camera...
+            </Typography>
+          </Box>
+        </Box>
+      )}
+
       {/* Header with photo counter - fixed height */}
-      <Box sx={{ p: 2, bgcolor: 'rgba(0,0,0,0.8)', color: 'white', textAlign: 'center', flexShrink: 0 }}>
+      <Box sx={{ p: 2, bgcolor: 'rgba(0,0,0,0.8)', color: 'white', textAlign: 'center', flexShrink: 0, zIndex: 2 }}>
         <Typography variant="h6">
           Photo {photoIndex + 1} of 3
         </Typography>
@@ -223,7 +273,7 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
           )}
 
           {/* Countdown overlay - centered on video */}
-          {!isCaptured && (
+          {!isCaptured && cameraReady && (
             <Box
               sx={{
                 position: 'absolute',
@@ -233,27 +283,22 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
                 zIndex: 10,
               }}
             >
-              {cameraReady ? (
-                <Typography
-                  variant="h1"
-                  sx={{
-                    fontSize: '120px',
-                    fontWeight: 'bold',
-                    color: 'white',
-                    textShadow: '0 0 20px rgba(0,0,0,0.8)',
-                    margin: 0,
-                  }}
-                >
-                  {countdown}
-                </Typography>
-              ) : (
-                <CircularProgress sx={{ color: 'white' }} />
-              )}
+              <Typography
+                variant="h1"
+                sx={{
+                  fontSize: '120px',
+                  fontWeight: 'bold',
+                  color: 'white',
+                  textShadow: '0 0 20px rgba(0,0,0,0.8)',
+                  margin: 0,
+                }}
+              >
+                {countdown}
+              </Typography>
             </Box>
           )}
         </Box>
       </Box>
-
 
       <canvas ref={canvasRef} style={{ display: 'none' }} />
     </Box>
