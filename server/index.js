@@ -100,6 +100,15 @@ app.get('/api/auth/status', (req, res) => {
   });
 });
 
+// Clear authorization (force re-auth with new scopes)
+app.get('/api/auth/reset', (req, res) => {
+  accessToken = null;
+  refreshToken = null;
+  res.json({
+    message: 'Authorization cleared. Please re-authorize.',
+  });
+});
+
 // Refresh token if needed
 async function refreshAccessToken() {
   if (!refreshToken) {
