@@ -292,18 +292,19 @@ app.get('/api/slideshow/photo', async (req, res) => {
   }
 
   try {
-    // Get list of media items from Google Photos
-    const response = await axios.get(
-      'https://photoslibrary.googleapis.com/v1/mediaItems',
+    console.log('Fetching photos with token...');
+    // Get list of media items from Google Photos using POST
+    const response = await axios.post(
+      'https://photoslibrary.googleapis.com/v1/mediaItems:search',
+      { pageSize: 100 },
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
-        },
-        params: {
-          pageSize: 100,
+          'Content-Type': 'application/json',
         },
       }
     );
+    console.log('Photos fetched successfully, count:', response.data.mediaItems?.length);
 
     const mediaItems = response.data.mediaItems || [];
 
