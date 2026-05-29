@@ -164,6 +164,10 @@ export const CameraCapture = ({ photoIndex, onCapture, onConfirm, onRetake }) =>
       canvas.width = video.videoWidth
       canvas.height = video.videoHeight
 
+      // Flip horizontally to match the mirrored video display
+      context.scale(-1, 1)
+      context.translate(-video.videoWidth, 0)
+
       // Draw the video frame to canvas
       context.drawImage(video, 0, 0)
 
