@@ -287,15 +287,20 @@ app.get('/api/slideshow/photo', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching photos:', error.message);
+    console.error('Error status:', error.response?.status);
+    console.error('Error data:', error.response?.data);
+    console.error('Token:', accessToken ? 'Present' : 'Missing');
+
     if (error.response?.status === 401) {
       return res.status(401).json({
         error: 'Authentication expired',
         message: 'Please authorize again.',
       });
     }
-    res.status(500).json({
+    res.status(error.response?.status || 500).json({
       error: 'Failed to fetch photos',
       message: error.message,
+      details: error.response?.data,
     });
   }
 });
