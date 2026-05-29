@@ -35,16 +35,22 @@ let refreshToken = null;
 
 // Get authorization URL
 app.get('/api/auth/url', (req, res) => {
+  const scopes = [
+    'https://www.googleapis.com/auth/photoslibrary',
+    'https://www.googleapis.com/auth/photoslibrary.appendonly'
+  ];
+
   const params = new URLSearchParams({
     client_id: GOOGLE_CLIENT_ID,
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
-    scope: 'https://www.googleapis.com/auth/photoslibrary https://www.googleapis.com/auth/photoslibrary.appendonly',
+    scope: scopes.join(' '),
     access_type: 'offline',
     prompt: 'consent',
   });
 
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
+  console.log('Generated auth URL with scopes:', scopes);
   res.json({ authUrl });
 });
 
@@ -107,6 +113,30 @@ app.get('/api/auth/reset', (req, res) => {
   res.json({
     message: 'Authorization cleared. Please re-authorize.',
   });
+});
+
+// Debug: Check token scopes
+app.get('/api/auth/debug', async (req, res) => {
+  if (!accessToken) {
+    return res.json({ error: 'Not authorized' });
+  }
+
+  try {
+    const response = await axios.get('https://www.googleapis.com/oauth2/v1/tokeninfo', {
+      params: { access_token: accessToken },
+    });
+
+    res.json({
+      scopes: response.data.scope?.split(' ') || [],
+      expires_in: response.data.expires_in,
+      email: response.data.email,
+    });
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to check token info',
+      message: error.message,
+    });
+  }
 });
 
 // Refresh token if needed
