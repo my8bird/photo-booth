@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Box } from '@mui/material'
+import { Box, Typography } from '@mui/material'
 import axios from 'axios'
+import { QRCodeSVG } from 'qrcode.react'
 
 const DISPLAY_DURATION = 5000 // 5 seconds in center
 const MOVE_DURATION = 120000 // 120 seconds moving off screen
@@ -180,6 +181,34 @@ export const Slideshow = () => {
           }}
         />
       )}
+
+      {/* Add your Photos QR section - bottom right */}
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: 20,
+          right: 20,
+          bgcolor: 'rgba(255, 255, 255, 0.95)',
+          borderRadius: '12px',
+          padding: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '12px',
+          zIndex: 10,
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+        }}
+      >
+        <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#000' }}>
+          Add your Photos
+        </Typography>
+        <QRCodeSVG
+          value="https://my8bird.github.io/photo-booth/"
+          size={120}
+          level="H"
+          includeMargin={true}
+        />
+      </Box>
     </Box>
   )
 }
