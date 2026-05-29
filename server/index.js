@@ -4,7 +4,25 @@ const cors = require('cors');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+
+// Configure CORS for GitHub Pages
+const allowedOrigins = [
+  'http://localhost:5173', // Development
+  'http://localhost:3000', // Development
+  'https://my8bird.github.io', // Production
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+}));
+
 app.use(express.json({ limit: '50mb' }));
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
