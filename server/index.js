@@ -14,6 +14,7 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
+	  console.log(origin)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -237,6 +238,63 @@ app.post('/api/upload', async (req, res) => {
     console.error('Upload error:', error.message);
     res.status(500).json({
       error: 'Failed to upload',
+      message: error.message,
+    });
+  }
+});
+
+// Get random photo from Google Photos for slideshow
+app.get('/api/slideshow/photo', async (req, res) => {
+  if (!accessToken) {
+    return res.status(401).json({
+      error: 'Not authorized',
+      message: 'Please authorize first.',
+    });
+  }
+
+  try {
+    // Get list of media items from Google Photos
+    const response = await axios.get(
+      'https://photoslibrary.googleapis.com/v1/mediaItems',
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        params: {
+          pageSize: 100,
+        },
+      }
+    );
+
+    const mediaItems = response.data.mediaItems || [];
+
+    if (mediaItems.length === 0) {
+      return res.status(404).json({
+        error: 'No photos found',
+        message: 'No photos in Google Photos library.',
+      });
+    }
+
+    // Pick a random photo
+    const randomPhoto = mediaItems[Math.floor(Math.random() * mediaItems.length)];
+
+    res.json({
+      id: randomPhoto.id,
+      url: randomPhoto.baseUrl + '=w1024',
+      width: randomPhoto.mediaMetadata?.width,
+      height: randomPhoto.mediaMetadata?.height,
+      mimeType: randomPhoto.mimeType,
+    });
+  } catch (error) {
+    console.error('Error fetching photos:', error.message);
+    if (error.response?.status === 401) {
+      return res.status(401).json({
+        error: 'Authentication expired',
+        message: 'Please authorize again.',
+      });
+    }
+    res.status(500).json({
+      error: 'Failed to fetch photos',
       message: error.message,
     });
   }
