@@ -9,9 +9,8 @@ import {
   Alert,
 } from '@mui/material'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
-import DownloadIcon from '@mui/icons-material/Download'
 import StartIcon from '@mui/icons-material/Start'
-import { composePhotos, downloadComposite } from '../services/imageComposite'
+import { composePhotos } from '../services/imageComposite'
 
 export const CompositePreview = ({ photos, onReset }) => {
   const [compositeImage, setCompositeImage] = useState(null)
@@ -94,11 +93,6 @@ export const CompositePreview = ({ photos, onReset }) => {
     }
   }
 
-  const handleDownload = () => {
-    if (compositeImage?.blob) {
-      downloadComposite(compositeImage.blob, 'photo-booth.jpg')
-    }
-  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', bgcolor: '#121212', overflow: 'hidden' }}>
@@ -160,17 +154,6 @@ export const CompositePreview = ({ photos, onReset }) => {
           width: '100%'
         }}
       >
-        <Button
-          variant="contained"
-          color="success"
-          size="medium"
-          startIcon={<DownloadIcon />}
-          onClick={handleDownload}
-          disabled={!compositeImage || isComposing}
-        >
-          Download
-        </Button>
-
         <Button
           variant="contained"
           color="primary"
