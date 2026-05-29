@@ -23,22 +23,11 @@ jobs:
 
       - name: Check secrets
         run: |
-          echo "Checking environment secrets..."
-          if [ -z "${{ secrets.VITE_GOOGLE_CLIENT_ID }}" ]; then
-            echo "❌ VITE_GOOGLE_CLIENT_ID is NOT set"
-          else
-            echo "✅ VITE_GOOGLE_CLIENT_ID is set"
-          fi
-          if [ -z "${{ secrets.VITE_GOOGLE_REDIRECT_URI }}" ]; then
-            echo "❌ VITE_GOOGLE_REDIRECT_URI is NOT set"
-          else
-            echo "✅ VITE_GOOGLE_REDIRECT_URI is set"
-          fi
-          if [ -z "${{ secrets.VITE_BACKEND_URL }}" ]; then
-            echo "❌ VITE_BACKEND_URL is NOT set"
-          else
-            echo "✅ VITE_BACKEND_URL is set"
-          fi
+          echo "=== Environment Secrets ==="
+          echo "VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}"
+          echo "VITE_GOOGLE_REDIRECT_URI: ${{ secrets.VITE_GOOGLE_REDIRECT_URI }}"
+          echo "VITE_BACKEND_URL: ${{ secrets.VITE_BACKEND_URL }}"
+          echo "=========================="
 
       - name: Install dependencies
         run: npm install
