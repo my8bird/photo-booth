@@ -22,7 +22,9 @@ export const LandingPage = ({ onStart }) => {
     try {
       const url = `${backendUrl}/api/auth/status`
       console.log('Checking auth status at:', url)
-      const response = await axios.get(url)
+      const response = await axios.get(url, {
+        headers: { 'ngrok-skip-browser-warning': 'skip-browser-warning' }
+      })
       setIsAuthorized(response.data.authorized)
     } catch (error) {
       console.error('Error checking auth status:', error)
@@ -37,7 +39,9 @@ export const LandingPage = ({ onStart }) => {
     try {
       const url = `${backendUrl}/api/auth/url`
       console.log('Getting auth URL from:', url)
-      const response = await axios.get(url)
+      const response = await axios.get(url, {
+        headers: { 'ngrok-skip-browser-warning': 'skip-browser-warning' }
+      })
       window.open(response.data.authUrl, '_blank')
 
       // Check auth status after a delay to see if user authorized
