@@ -296,10 +296,18 @@ app.get('/api/slideshow/photo', async (req, res) => {
 
   try {
     console.log('Fetching photos with token...');
+    console.log('Using accessToken:', accessToken.substring(0, 20) + '...');
+
     // Get list of media items from Google Photos using POST
+    const requestBody = {
+      pageSize: 100,
+    };
+
+    console.log('Request body:', requestBody);
+
     const response = await axios.post(
       'https://photoslibrary.googleapis.com/v1/mediaItems:search',
-      { pageSize: 100 },
+      requestBody,
       {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -331,8 +339,8 @@ app.get('/api/slideshow/photo', async (req, res) => {
   } catch (error) {
     console.error('Error fetching photos:', error.message);
     console.error('Error status:', error.response?.status);
-    console.error('Error data:', error.response?.data);
-    console.error('Token:', accessToken ? 'Present' : 'Missing');
+    console.error('Error data:', JSON.stringify(error.response?.data, null, 2));
+    console.error('Full error:', error);
 
     if (error.response?.status === 401) {
       return res.status(401).json({
