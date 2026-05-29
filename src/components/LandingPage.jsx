@@ -94,7 +94,7 @@ export const LandingPage = ({ onStart }) => {
         </Typography>
 
         <Typography variant="body1" sx={{ mb: 6, opacity: 0.8 }}>
-          Get ready! Each photo will auto-capture after a 5 second countdown. You can retake any photo if needed.
+          Get ready! Each photo will auto-capture after a 5 second countdown. You can retake any photo if needed. asdfasf
         </Typography>
 
         {/* Debug info */}
