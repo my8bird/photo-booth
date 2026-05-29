@@ -1,15 +1,25 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Box, AppBar, Toolbar, Typography, IconButton, Drawer, List, ListItem, ListItemButton, ListItemText } from '@mui/material'
 import MenuIcon from '@mui/icons-material/Menu'
 import { LandingPage } from './components/LandingPage'
 import { CameraCapture } from './components/CameraCapture'
 import { CompositePreview } from './components/CompositePreview'
+import { Slideshow } from './components/Slideshow'
 import { usePhotoBooth } from './hooks/usePhotoBooth'
 
 function App() {
   const photoBooth = usePhotoBooth()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [hasStarted, setHasStarted] = useState(false)
+  const [currentPage, setCurrentPage] = useState('home') // 'home', 'photobooth', 'slideshow'
+
+  // Check URL for slideshow route
+  useEffect(() => {
+    const path = window.location.pathname
+    if (path.includes('/slideshow')) {
+      setCurrentPage('slideshow')
+    }
+  }, [])
 
   const handleStart = () => {
     setHasStarted(true)
@@ -30,6 +40,12 @@ function App() {
   const handleReset = () => {
     photoBooth.reset()
     setHasStarted(false)
+    setCurrentPage('home')
+  }
+
+  // Slideshow route
+  if (currentPage === 'slideshow') {
+    return <Slideshow />
   }
 
   if (!hasStarted) {
