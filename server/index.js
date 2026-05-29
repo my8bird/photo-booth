@@ -47,6 +47,7 @@ app.get('/api/auth/url', (req, res) => {
     scope: scopes.join(' '),
     access_type: 'offline',
     prompt: 'consent',
+    include_granted_scopes: 'true',
   });
 
   const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
@@ -76,6 +77,8 @@ app.get('/api/auth/callback', async (req, res) => {
     refreshToken = tokenResponse.data.refresh_token;
 
     console.log('✅ Authorization successful!');
+    console.log('Token response scopes:', tokenResponse.data.scope);
+    console.log('Token response granted_scopes:', tokenResponse.data.granted_scopes);
     res.send(`
       <html>
         <body style="font-family: Arial; text-align: center; padding: 50px;">
