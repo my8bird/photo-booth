@@ -37,7 +37,8 @@ let refreshToken = null;
 app.get('/api/auth/url', (req, res) => {
   const scopes = [
     'https://www.googleapis.com/auth/photoslibrary',
-    'https://www.googleapis.com/auth/photoslibrary.appendonly'
+    'https://www.googleapis.com/auth/photoslibrary.appendonly',
+    'https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata'
   ];
 
   const params = new URLSearchParams({
