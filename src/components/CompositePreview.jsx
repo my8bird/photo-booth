@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import axios from 'axios'
 import {
   Box,
   Button,
@@ -9,13 +8,17 @@ import {
   Alert,
 } from '@mui/material'
 import CloudUploadIcon from '@mui/icons-material/CloudUpload'
+import DownloadIcon from '@mui/icons-material/Download'
 import StartIcon from '@mui/icons-material/Start'
-import { composePhotos } from '../services/imageComposite'
+import { composePhotos, downloadComposite } from '../services/imageComposite'
+import { googleAuthService } from '../services/googleAuth'
+import { uploadToGooglePhotos } from '../services/googlePhotosApi'
 
 export const CompositePreview = ({ photos, onReset }) => {
   const [compositeImage, setCompositeImage] = useState(null)
   const [isComposing, setIsComposing] = useState(true)
   const [isUploading, setIsUploading] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' })
 
   useEffect(() => {
@@ -36,56 +39,56 @@ export const CompositePreview = ({ photos, onReset }) => {
     compose()
   }, [photos])
 
-  const handleShare = async () => {
-    if (!compositeImage?.blob) return
+  const handleAuthenticate = async () => {
+    try {
+      await googleAuthService.initialize()
+      await googleAuthService.startOAuthFlow()
+      setIsAuthenticated(true)
+      setSnackbar({
+        open: true,
+        message: '✅ Authenticated! You can now upload to Google Photos.',
+        severity: 'success',
+      })
+    } catch (error) {
+      console.error('Auth error:', error)
+      setSnackbar({
+        open: true,
+        message: `Authentication failed: ${error.message}`,
+        severity: 'error',
+      })
+    }
+  }
+
+  const handleUpload = async () => {
+    if (!compositeImage?.blob || !isAuthenticated) return
 
     setIsUploading(true)
     try {
-      const reader = new FileReader()
-      reader.onload = async () => {
-        try {
-          // Extract base64 image data (remove data URL prefix)
-          const base64Image = reader.result.split(',')[1]
-
-          // Send to backend server
-          const response = await axios.post(
-            `${import.meta.env.VITE_BACKEND_URL}/api/upload`,
-            { image: base64Image },
-            {
-              headers: { 'Content-Type': 'application/json' },
-            }
-          )
-
-          if (response.data.success) {
-            setSnackbar({
-              open: true,
-              message: '✅ Successfully uploaded to Google Drive!',
-              severity: 'success',
-            })
-            setTimeout(() => onReset(), 2500)
-          } else {
-            throw new Error(response.data.error || 'Upload failed')
-          }
-        } catch (error) {
-          console.error('Drive upload error:', error)
-          setSnackbar({
-            open: true,
-            message: `Upload failed: ${error.message}`,
-            severity: 'error',
-          })
-          setIsUploading(false)
-        }
+      const result = await uploadToGooglePhotos(compositeImage.blob, 'Photo Booth Composite')
+      if (result.success) {
+        setSnackbar({
+          open: true,
+          message: '✅ Successfully uploaded to Google Photos!',
+          severity: 'success',
+        })
+        setTimeout(() => onReset(), 2500)
+      } else {
+        throw new Error(result.error || 'Upload failed')
       }
-
-      reader.readAsDataURL(compositeImage.blob)
     } catch (error) {
-      console.error('Share error:', error)
+      console.error('Upload error:', error)
       setSnackbar({
         open: true,
-        message: 'Failed to prepare share. Please try again.',
+        message: `Upload failed: ${error.message}`,
         severity: 'error',
       })
       setIsUploading(false)
+    }
+  }
+
+  const handleDownload = () => {
+    if (compositeImage?.blob) {
+      downloadComposite(compositeImage.blob, 'photo-booth.jpg')
     }
   }
 
@@ -151,14 +154,37 @@ export const CompositePreview = ({ photos, onReset }) => {
       >
         <Button
           variant="contained"
-          color="primary"
+          color="success"
           size="medium"
-          startIcon={isUploading ? <CircularProgress size={16} /> : <CloudUploadIcon />}
-          onClick={handleShare}
-          disabled={!compositeImage || isComposing || isUploading}
+          startIcon={<DownloadIcon />}
+          onClick={handleDownload}
+          disabled={!compositeImage || isComposing}
         >
-          {isUploading ? 'Uploading...' : 'Upload'}
+          Download
         </Button>
+
+        {!isAuthenticated ? (
+          <Button
+            variant="contained"
+            color="primary"
+            size="medium"
+            onClick={handleAuthenticate}
+            disabled={isComposing || isUploading}
+          >
+            Sign in to Google Photos
+          </Button>
+        ) : (
+          <Button
+            variant="contained"
+            color="primary"
+            size="medium"
+            startIcon={isUploading ? <CircularProgress size={16} /> : <CloudUploadIcon />}
+            onClick={handleUpload}
+            disabled={!compositeImage || isComposing || isUploading}
+          >
+            {isUploading ? 'Uploading...' : 'Upload to Google Photos'}
+          </Button>
+        )}
 
         <Button variant="outlined" size="medium" startIcon={<StartIcon />} onClick={onReset} disabled={isUploading}>
           New
